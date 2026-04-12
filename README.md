@@ -536,7 +536,7 @@ Uptime: 99.9%
 - **Email**: pratapssakthivel@gmail.com
 - **Institution**: VSB Engineering College
 - **GitHub**: [@PratapSakthivel](https://github.com/PratapSakthivel)
-- **LinkedIn**: [Connect](https://linkedin.com/in/pratapsakthivel)
+- **LinkedIn**: [Connect](https://www.linkedin.com/in/pratap-s-587b0b342/)
 
 ### Project Links
 - **Repository**: https://github.com/PratapSakthivel/endee
