@@ -11,7 +11,7 @@
 
 *Revolutionizing error detection with vector embeddings and intelligent root cause analysis*
 
-[📖 Documentation](#documentation) • [🎯 Features](#key-features) • [🏗️ Architecture](#system-architecture) • [🚀 Quick Start](#quick-start) • [📊 Demo](#live-demo)
+[📖 Documentation](#documentation) • [🎯 Features](#key-features) • [🏗️ Architecture](#system-architecture) • [🚀 Quick Start](#quick-start) • [💻 Repository](#repository)
 
 ---
 
@@ -287,37 +287,44 @@ errorlens/
 
 ---
 
-## 🎯 Live Demo
+## 💻 Repository
 
-### Demo Workflow (5 Minutes)
+### GitHub Repository
+- **URL**: https://github.com/PratapSakthivel/endee
+- **Branch**: `master` (production-ready)
+- **Status**: Public
+- **Stars**: ⭐ Star this repo if you find it useful!
 
-#### 1. **Ingest Sample Logs**
+### Repository Structure
+```
+endee/
+├── README.md                      # This file - Project overview
+├── errorlens/                     # ErrorLens application
+│   ├── backend/                   # FastAPI backend
+│   ├── frontend/                  # Streamlit UI
+│   ├── data/sample_logs/          # Demo data (500 logs)
+│   ├── tests/                     # Test suite
+│   ├── scripts/                   # Utility scripts
+│   ├── docker-compose.yml         # Full-stack deployment
+│   ├── requirements.txt           # Dependencies
+│   ├── README_ERRORLENS.md        # Detailed documentation
+│   └── RENDER_DEPLOYMENT.md       # Cloud deployment guide
+└── .github/                       # GitHub workflows
+```
+
+### Quick Clone & Run
 ```bash
-# Upload auth_service.log (167 entries)
-# Processing: 1.31 seconds
-# Speed: 127 logs/second
+# Clone the repository
+git clone https://github.com/PratapSakthivel/endee.git
+cd endee/errorlens
+
+# Follow Quick Start guide above
 ```
 
-#### 2. **Semantic Search**
-```
-Query: "users cannot authenticate"
-Results: 5 matches
-Top Score: 0.89 (Highly Relevant)
-Time: 142ms
-```
+### Live Demo
+🚀 **Deployment**: You can deploy this to Render.com in 10 minutes using the [Render Deployment Guide](errorlens/RENDER_DEPLOYMENT.md)
 
-#### 3. **AI Root Cause Analysis**
-```
-Query: "Multiple users reporting login failures"
-Analysis Time: 4.1 seconds
-
-Root Cause: JWT token validation failing due to...
-Fix Suggestions:
-  1. Check token expiration settings
-  2. Verify secret key configuration
-  3. Review authentication middleware
-Prevention: Implement proper session management...
-```
+📝 **Note**: Live demo URL will be updated after deployment
 
 ---
 
