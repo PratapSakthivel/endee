@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  # Endee Vector Database
+  # Note: This is a reference configuration
+  # You're already running Endee separately with 5GB RAM limit
+  endee:
+    image: pratapsakthivel/endee:latest
+    container_name: errorlens-endee
+    ports:
+      - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 5G  # RAM limit for stability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Note: Backend and Frontend will run directly with Python commands
+# This keeps your laptop fast and makes debugging easier
+#
+# To run backend:  cd backend && uvicorn main:app --reload --port 8000
+# To run frontend: cd frontend && streamlit run streamlit_app.py
