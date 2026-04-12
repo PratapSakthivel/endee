@@ -176,80 +176,69 @@ async def ingest_logs(
                 detail=f"File too large. Maximum size: {MAX_FILE_SIZE // (1024*1024)}MB"
             )
         
-        # Save to temporary file for parsing
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
-            temp_file.write(content)
-            temp_file_path = temp_file.name
+        # Parse logs
+        logger.info("Parsing log entries...")
+        # Decode content to string
+        content_str = content.decode('utf-8')
+        log_entries = parser.parse_file(content_str, file.filename)
         
-        try:
-            # Parse logs
-            logger.info("Parsing log entries...")
-            log_entries = parser.parse_file(temp_file_path)
-            
-            if not log_entries:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="No valid log entries found in file"
-                )
-            
-            # Process in batches
-            total_processed = 0
-            total_errors = 0
-            batch_count = 0
-            
-            for i in range(0, len(log_entries), BATCH_SIZE):
-                batch = log_entries[i:i + BATCH_SIZE]
-                batch_count += 1
-                
-                logger.info(f"Processing batch {batch_count} ({len(batch)} entries)")
-                
-                try:
-                    # Generate embeddings for batch
-                    embeddings = embedder_comp.embed_log_entries(batch)
-                    
-                    # Prepare vectors for Endee
-                    vectors = []
-                    for j, (entry, embedding) in enumerate(zip(batch, embeddings)):
-                        vector_obj = endee_comp.prepare_log_vector(
-                            entry, embedding, entry.line_number
-                        )
-                        vectors.append(vector_obj)
-                    
-                    # Upsert to Endee
-                    endee_comp.upsert_vectors(vectors)
-                    
-                    total_processed += len(batch)
-                    
-                except Exception as e:
-                    logger.error(f"Error processing batch {batch_count}: {e}")
-                    total_errors += len(batch)
-            
-            processing_time = time.time() - start_time
-            
-            # Prepare statistics
-            stats = {
-                "total_lines": len(log_entries),
-                "processed_successfully": total_processed,
-                "processing_errors": total_errors,
-                "processing_time_seconds": round(processing_time, 2),
-                "batches_processed": batch_count,
-                "logs_per_second": round(total_processed / processing_time, 2) if processing_time > 0 else 0
-            }
-            
-            logger.info(f"Ingestion complete: {total_processed}/{len(log_entries)} entries processed in {processing_time:.2f}s")
-            
-            return IngestionStats(
-                status="success" if total_errors == 0 else "partial_success",
-                filename=file.filename,
-                stats=stats
+        if not log_entries:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No valid log entries found in file"
             )
+        
+        # Process in batches
+        total_processed = 0
+        total_errors = 0
+        batch_count = 0
+        
+        for i in range(0, len(log_entries), BATCH_SIZE):
+            batch = log_entries[i:i + BATCH_SIZE]
+            batch_count += 1
             
-        finally:
-            # Clean up temporary file
+            logger.info(f"Processing batch {batch_count} ({len(batch)} entries)")
+            
             try:
-                os.unlink(temp_file_path)
+                # Generate embeddings for batch
+                embeddings = embedder_comp.embed_log_entries(batch)
+                
+                # Prepare vectors for Endee
+                vectors = []
+                for j, (entry, embedding) in enumerate(zip(batch, embeddings)):
+                    vector_obj = endee_comp.prepare_log_vector(
+                        entry, embedding, entry.line_number
+                    )
+                    vectors.append(vector_obj)
+                
+                # Upsert to Endee
+                endee_comp.upsert_vectors(vectors)
+                
+                total_processed += len(batch)
+                
             except Exception as e:
-                logger.warning(f"Failed to delete temporary file: {e}")
+                logger.error(f"Error processing batch {batch_count}: {e}")
+                total_errors += len(batch)
+        
+        processing_time = time.time() - start_time
+        
+        # Prepare statistics
+        stats = {
+            "total_lines": len(log_entries),
+            "processed_successfully": total_processed,
+            "processing_errors": total_errors,
+            "processing_time_seconds": round(processing_time, 2),
+            "batches_processed": batch_count,
+            "logs_per_second": round(total_processed / processing_time, 2) if processing_time > 0 else 0
+        }
+        
+        logger.info(f"Ingestion complete: {total_processed}/{len(log_entries)} entries processed in {processing_time:.2f}s")
+        
+        return IngestionStats(
+            status="success" if total_errors == 0 else "partial_success",
+            filename=file.filename,
+            stats=stats
+        )
     
     except HTTPException:
         raise
