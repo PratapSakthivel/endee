@@ -79,23 +79,23 @@ This implementation plan breaks down the ErrorLens system into 9 phases, followi
   - [x] 1.9 Checkpoint - Ensure all tests pass
     - Ensure all tests pass, ask user if questions arise
 
-- [ ] Phase 2: Embedder Implementation
-  - [ ] 2.1 Implement Embedder class initialization
+- [-] Phase 2: Embedder Implementation
+  - [x] 2.1 Implement Embedder class initialization
     - Create backend/embedder.py with Embedder class
     - Load sentence-transformers model (all-MiniLM-L6-v2)
     - Implement model caching
     - _Requirements: 2.1, 2.5_
   
-  - [ ] 2.2 Implement single text embedding
+  - [x] 2.2 Implement single text embedding
     - Implement embed() method with vector normalization
     - Ensure 384-dimensional output
     - _Requirements: 2.1, 2.3_
   
-  - [ ] 2.3 Implement batch embedding
+  - [x] 2.3 Implement batch embedding
     - Implement embed_batch() method using batch encoding
     - _Requirements: 2.4_
   
-  - [ ] 2.4 Implement embed_log_entry() method
+  - [x] 2.4 Implement embed_log_entry() method
     - Combine severity, service, message fields into embedding text
     - _Requirements: 2.2_
   
@@ -115,14 +115,14 @@ This implementation plan breaks down the ErrorLens system into 9 phases, followi
     - **Property 7: Batch Embedding Consistency**
     - **Validates: Requirements 2.4**
   
-  - [ ]* 2.9 Write unit tests for Embedder
+  - [x]* 2.9 Write unit tests for Embedder
     - Test model loading and caching
     - Test single embedding generation
     - Test batch embedding
     - Test embed_log_entry with LogEntry objects
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
   
-  - [ ] 2.10 Checkpoint - Ensure all tests pass
+  - [x] 2.10 Checkpoint - Ensure all tests pass
     - Ensure all tests pass, ask user if questions arise
 
 - [ ] Phase 3: Endee Client Implementation
