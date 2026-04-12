@@ -1,0 +1,54 @@
+services:
+  # Backend API Service
+  - type: web
+    name: errorlens-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ENDEE_URL
+        value: https://errorlens-endee.onrender.com/api/v1
+      - key: EMBEDDING_MODEL
+        value: all-MiniLM-L6-v2
+      - key: PYTHON_VERSION
+        value: 3.10.0
+    healthCheckPath: /health
+
+  # Frontend Streamlit Service
+  - type: web
+    name: errorlens-frontend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
+    envVars:
+      - key: API_URL
+        fromService:
+          type: web
+          name: errorlens-backend
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: PYTHON_VERSION
+        value: 3.10.0
+
+  # Endee Vector Database Service
+  - type: web
+    name: errorlens-endee
+    env: docker
+    region: oregon
+    plan: free
+    image:
+      url: endeeio/endee-server:latest
+    envVars:
+      - key: NDD_DATA_PATH
+        value: /data
+      - key: NDD_RAM_LIMIT
+        value: 2GB
+    disk:
+      name: endee-data
+      mountPath: /data
+      sizeGB: 1
