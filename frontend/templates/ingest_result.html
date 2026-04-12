@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Ingestion Results - ErrorLens{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">🎉 Ingestion Complete</h1>
+</div>
+
+<div class="alert alert-success">
+    <h4 class="alert-heading">File processed successfully!</h4>
+    <p>Your log file <strong>{{ result.filename }}</strong> has been processed and stored in the vector database.</p>
+</div>
+
+<!-- Ingestion Statistics -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>📊 Processing Results</h4>
+    </div>
+    
+    <!-- Key Metrics -->
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="h3 text-primary">{{ "{:,}".format(result.stats.total_lines) }}</div>
+                <div class="text-muted">Total Lines</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="h3 text-success">{{ "{:,}".format(result.stats.processed_successfully) }}</div>
+                <div class="text-muted">Processed</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="h3 {% if result.stats.processing_errors > 0 %}text-warning{% else %}text-success{% endif %}">{{ "{:,}".format(result.stats.processing_errors) }}</div>
+                <div class="text-muted">Errors</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="h3 text-info">{{ result.stats.processing_time_seconds }}s</div>
+                <div class="text-muted">Processing Time</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Metrics -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="h4 text-secondary">{{ "{:,}".format(result.stats.batches_processed) }}</div>
+                <div class="text-muted">Batches Processed</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="h4 text-info">{{ "%.1f"|format(result.stats.logs_per_second) }} logs/sec</div>
+                <div class="text-muted">Processing Speed</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                {% set success_rate = (result.stats.processed_successfully / result.stats.total_lines * 100) if result.stats.total_lines > 0 else 0 %}
+                <div class="h4 {% if success_rate == 100 %}text-success{% elif success_rate >= 90 %}text-warning{% else %}text-danger{% endif %}">{{ "%.1f"|format(success_rate) }}%</div>
+                <div class="text-muted">Success Rate</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Indicator -->
+<div class="row mb-4">
+    <div class="col-12">
+        {% if result.status == "success" %}
+            <div class="alert alert-success">
+                🟢 All logs processed successfully
+            </div>
+        {% elif result.status == "partial_success" %}
+            <div class="alert alert-warning">
+                🟡 Partial success - {{ result.stats.processing_errors }} logs had processing errors
+            </div>
+        {% else %}
+            <div class="alert alert-danger">
+                🔴 Processing failed with status: {{ result.status }}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Detailed Statistics -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📋 Detailed Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <td><strong>Filename</strong></td>
+                                <td>{{ result.filename }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Total Lines</strong></td>
+                                <td>{{ "{:,}".format(result.stats.total_lines) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Successfully Processed</strong></td>
+                                <td>{{ "{:,}".format(result.stats.processed_successfully) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Processing Errors</strong></td>
+                                <td>{{ "{:,}".format(result.stats.processing_errors) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Processing Time</strong></td>
+                                <td>{{ result.stats.processing_time_seconds }} seconds</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Batches Processed</strong></td>
+                                <td>{{ "{:,}".format(result.stats.batches_processed) }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Processing Speed</strong></td>
+                                <td>{{ "%.2f"|format(result.stats.logs_per_second) }} logs per second</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Success Rate</strong></td>
+                                <td>{{ "%.2f"|format(success_rate) }}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Next Steps -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>🎯 Next Steps</h4>
+        <p>Your logs have been successfully ingested and are ready for analysis. Here's what you can do next:</p>
+    </div>
+    <div class="col-md-4">
+        <div class="d-grid">
+            <a href="{{ url_for('search') }}" class="btn btn-success btn-lg">
+                <i class="bi bi-search"></i> Search Logs
+            </a>
+            <small class="text-muted mt-1">Find relevant logs using semantic search</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="d-grid">
+            <a href="{{ url_for('root_cause') }}" class="btn btn-info btn-lg">
+                <i class="bi bi-brain"></i> AI Analysis
+            </a>
+            <small class="text-muted mt-1">Get intelligent root cause analysis</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="d-grid">
+            <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+            <small class="text-muted mt-1">View updated system statistics</small>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Another File -->
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <h5 class="card-title">Upload Another File?</h5>
+                <p class="card-text">You can upload additional log files to expand your analysis dataset.</p>
+                <a href="{{ url_for('ingest') }}" class="btn btn-outline-primary">
+                    <i class="bi bi-upload"></i> Upload More Logs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

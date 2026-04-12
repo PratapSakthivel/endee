@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+
+{% block title %}Ingest - ErrorLens{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">📤 Log Ingestion</h1>
+</div>
+
+<p class="lead">Upload and process log files for semantic analysis</p>
+
+<!-- File Upload Form -->
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">📁 File Upload</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Choose a log file</label>
+                        <input type="file" class="form-control" id="file" name="file" 
+                               accept=".log,.txt,.json" required>
+                        <div class="form-text">
+                            Supported formats: {{ supported_extensions|join(', ') }} | Maximum size: {{ max_size_mb }}MB
+                        </div>
+                    </div>
+                    
+                    <div id="fileInfo" class="mb-3" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Filename:</strong> <span id="fileName"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>File Size:</strong> <span id="fileSize"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>File Type:</strong> <span id="fileType"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="validationMessage" class="mb-3"></div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg" id="uploadBtn" disabled>
+                        <i class="bi bi-rocket"></i> Process File
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- System Status -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">🏥 System Status</h6>
+            </div>
+            <div class="card-body">
+                {% if health %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Overall:</span>
+                        <span class="{% if health.status == 'healthy' %}text-success{% elif health.status == 'unhealthy' %}text-danger{% else %}text-warning{% endif %}">
+                            {% if health.status == 'healthy' %}🟢 Healthy{% elif health.status == 'unhealthy' %}🔴 Issues{% else %}🟡 {{ health.status|title }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Vector DB:</span>
+                        <span>{% if health.endee_connected %}✅ Connected{% else %}❌ Disconnected{% endif %}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>AI Model:</span>
+                        <span>{% if health.model_loaded %}✅ Loaded{% else %}❌ Not Loaded{% endif %}</span>
+                    </div>
+                {% else %}
+                    <div class="text-danger">❌ Status unavailable</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Quick Stats -->
+        {% if stats %}
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">📊 Quick Stats</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="h4 mb-0">{{ "{:,}".format(stats.vector_count) if stats.vector_count else "0" }}</div>
+                    <div class="text-muted">Total Logs</div>
+                </div>
+                {% if stats.vector_count == 0 %}
+                    <div class="alert alert-warning mt-2 mb-0">
+                        <small>No logs available. Upload files to get started!</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- File Format Guidelines -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">ℹ️ File Format Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Standard Log Format (.log, .txt)</h6>
+                        <pre class="bg-light p-2 small"><code>2024-01-15 10:30:45 ERROR [auth-service] Authentication failed
+2024-01-15 10:31:02 WARN [payment-service] Payment timeout</code></pre>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>JSON Log Format (.json)</h6>
+                        <pre class="bg-light p-2 small"><code>{"timestamp": "2024-01-15T10:30:45Z", "level": "ERROR", "service": "auth-service", "message": "Authentication failed"}
+{"timestamp": "2024-01-15T10:31:02Z", "level": "WARN", "service": "payment-service", "message": "Payment timeout"}</code></pre>
+                    </div>
+                    <div class="col-md-4">
+                        <h6>Syslog Format</h6>
+                        <pre class="bg-light p-2 small"><code>Jan 15 10:30:45 server auth-service[1234]: ERROR Authentication failed
+Jan 15 10:31:02 server payment-service[5678]: WARN Payment timeout</code></pre>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h6>Processing Details</h6>
+                <ul class="mb-0">
+                    <li>Files are processed in batches of 100 log entries</li>
+                    <li>Each log entry is converted to a 384-dimensional embedding vector</li>
+                    <li>Malformed lines are skipped with error reporting</li>
+                    <li>Processing time depends on file size and system resources</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const fileInfo = document.getElementById('fileInfo');
+    const validationMessage = document.getElementById('validationMessage');
+    const uploadBtn = document.getElementById('uploadBtn');
+    
+    if (file) {
+        // Show file information
+        document.getElementById('fileName').textContent = file.name;
+        document.getElementById('fileSize').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+        document.getElementById('fileType').textContent = file.type || 'Unknown';
+        fileInfo.style.display = 'block';
+        
+        // Validate file
+        const maxSizeMB = {{ max_size_mb }};
+        const allowedExtensions = ['.log', '.txt', '.json'];
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        
+        let isValid = true;
+        let message = '';
+        
+        // Check file extension
+        if (!allowedExtensions.includes(fileExtension)) {
+            isValid = false;
+            message = `❌ Unsupported file type: ${fileExtension}. Supported: ${allowedExtensions.join(', ')}`;
+        }
+        
+        // Check file size
+        if (file.size > maxSizeMB * 1024 * 1024) {
+            isValid = false;
+            message = `❌ File too large: ${(file.size / (1024*1024)).toFixed(1)}MB. Maximum: ${maxSizeMB}MB`;
+        }
+        
+        if (isValid) {
+            message = '✅ File is valid and ready for processing';
+            validationMessage.className = 'mb-3 alert alert-success';
+            uploadBtn.disabled = false;
+        } else {
+            validationMessage.className = 'mb-3 alert alert-danger';
+            uploadBtn.disabled = true;
+        }
+        
+        validationMessage.textContent = message;
+        validationMessage.style.display = 'block';
+    } else {
+        fileInfo.style.display = 'none';
+        validationMessage.style.display = 'none';
+        uploadBtn.disabled = true;
+    }
+});
+
+// Show upload progress
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const uploadBtn = document.getElementById('uploadBtn');
+    uploadBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Processing...';
+    uploadBtn.disabled = true;
+});
+</script>
+{% endblock %}

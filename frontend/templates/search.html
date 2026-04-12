@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+
+{% block title %}Search - ErrorLens{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">🔍 Semantic Log Search</h1>
+</div>
+
+<p class="lead">Search logs using natural language queries</p>
+
+<!-- Search Form -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">🎯 Search Parameters</h5>
+            </div>
+            <div class="card-body">
+                <form id="searchForm">
+                    <div class="row">
+                        <div class="col-md-9">
+                            <div class="mb-3">
+                                <label for="query" class="form-label">Search Query</label>
+                                <input type="text" class="form-control" id="query" name="query" 
+                                       placeholder="e.g., authentication failures, payment errors, database timeouts..."
+                                       required>
+                                <div class="form-text">Use natural language to describe what you're looking for</div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="top_k" class="form-label">Max Results</label>
+                                <input type="range" class="form-range" id="top_k" name="top_k" 
+                                       min="1" max="100" value="10" oninput="updateTopKValue(this.value)">
+                                <div class="form-text">Results: <span id="topKValue">10</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Options -->
+                    <div class="accordion mb-3">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#advancedOptions">
+                                    ⚙️ Advanced Options
+                                </button>
+                            </h2>
+                            <div id="advancedOptions" class="accordion-collapse collapse">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="rag_enabled" name="rag_enabled" checked>
+                                                <label class="form-check-label" for="rag_enabled">
+                                                    🧠 Enable AI Analysis
+                                                </label>
+                                                <div class="form-text">Get intelligent root cause analysis and fix suggestions</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="similarity_threshold" class="form-label">Similarity Threshold</label>
+                                            <input type="range" class="form-range" id="similarity_threshold" 
+                                                   min="0" max="1" step="0.1" value="0.3" 
+                                                   oninput="updateThresholdValue(this.value)">
+                                            <div class="form-text">Minimum: <span id="thresholdValue">0.3</span> (backend uses 0.3)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- System Status (same as ingest page) -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">🏥 System Status</h6>
+            </div>
+            <div class="card-body">
+                {% if health %}
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Overall:</span>
+                        <span class="{% if health.status == 'healthy' %}text-success{% elif health.status == 'unhealthy' %}text-danger{% else %}text-warning{% endif %}">
+                            {% if health.status == 'healthy' %}🟢 Healthy{% elif health.status == 'unhealthy' %}🔴 Issues{% else %}🟡 {{ health.status|title }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Vector DB:</span>
+                        <span>{% if health.endee_connected %}✅ Connected{% else %}❌ Disconnected{% endif %}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span>AI Model:</span>
+                        <span>{% if health.model_loaded %}✅ Loaded{% else %}❌ Not Loaded{% endif %}</span>
+                    </div>
+                {% else %}
+                    <div class="text-danger">❌ Status unavailable</div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Collection Stats -->
+        {% if stats %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6 class="mb-0">📊 Collection Stats</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <div class="h4 mb-0">{{ "{:,}".format(stats.vector_count) if stats.vector_count else "0" }}</div>
+                    <div class="text-muted">Total Logs</div>
+                </div>
+                {% if stats.vector_count == 0 %}
+                    <div class="alert alert-warning mt-2 mb-0">
+                        <small>No logs available. Upload files first!</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Quick Actions -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">⚡ Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('ingest') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-upload"></i> Upload Logs
+                    </a>
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Results -->
+<div id="searchResults" style="display: none;">
+    <div class="row mb-3">
+        <div class="col-12">
+            <h4 id="resultsTitle">📋 Search Results</h4>
+        </div>
+    </div>
+    
+    <!-- Results Summary -->
+    <div id="resultsSummary" class="row mb-3"></div>
+    
+    <!-- Results Table -->
+    <div id="resultsTable" class="mb-4"></div>
+    
+    <!-- RAG Analysis -->
+    <div id="ragAnalysis" style="display: none;"></div>
+</div>
+
+<!-- Loading Indicator -->
+<div id="loadingIndicator" style="display: none;">
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Searching...</span>
+        </div>
+        <p class="mt-2">Searching logs...</p>
+    </div>
+</div>
+
+<!-- Example Queries -->
+<div id="exampleQueries" class="row">
+    <div class="col-12">
+        <h4>💡 Example Queries</h4>
+        <p>Try these example searches to get started:</p>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Error Types</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><a href="#" onclick="setQuery('authentication failures')">authentication failures</a></li>
+                    <li><a href="#" onclick="setQuery('database connection errors')">database connection errors</a></li>
+                    <li><a href="#" onclick="setQuery('payment processing issues')">payment processing issues</a></li>
+                    <li><a href="#" onclick="setQuery('API timeout errors')">API timeout errors</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Service-Specific</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><a href="#" onclick="setQuery('auth-service errors')">auth-service errors</a></li>
+                    <li><a href="#" onclick="setQuery('payment-service warnings')">payment-service warnings</a></li>
+                    <li><a href="#" onclick="setQuery('api-gateway issues')">api-gateway issues</a></li>
+                    <li><a href="#" onclick="setQuery('database service problems')">database service problems</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Search Tips -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h6 class="card-title">💡 Search Tips</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Try these search strategies:</strong>
+                        <ul class="mb-0">
+                            <li>Use broader terms (e.g., "error" instead of specific error codes)</li>
+                            <li>Search by service names (e.g., "auth-service", "payment-service")</li>
+                            <li>Use common error patterns (e.g., "timeout", "connection", "failed")</li>
+                            <li>Check severity levels (e.g., "critical errors", "warnings")</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Example queries:</strong>
+                        <ul class="mb-0">
+                            <li>"authentication failures"</li>
+                            <li>"database connection errors"</li>
+                            <li>"payment processing issues"</li>
+                            <li>"API timeout errors"</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateTopKValue(value) {
+    document.getElementById('topKValue').textContent = value;
+}
+
+function updateThresholdValue(value) {
+    document.getElementById('thresholdValue').textContent = value;
+}
+
+function setQuery(query) {
+    document.getElementById('query').value = query;
+    document.getElementById('query').focus();
+}
+
+function formatSimilarity(score) {
+    return (score * 100).toFixed(1) + '%';
+}
+
+function getSeverityIcon(severity) {
+    const icons = {
+        'ERROR': '🔴',
+        'WARN': '🟡',
+        'WARNING': '🟡',
+        'INFO': '🔵',
+        'DEBUG': '⚪',
+        'UNKNOWN': '⚫'
+    };
+    return icons[severity.toUpperCase()] || '⚫';
+}
+
+function getSeverityClass(severity) {
+    const classes = {
+        'ERROR': 'text-danger',
+        'WARN': 'text-warning',
+        'WARNING': 'text-warning',
+        'INFO': 'text-info',
+        'DEBUG': 'text-secondary',
+        'UNKNOWN': 'text-muted'
+    };
+    return classes[severity.toUpperCase()] || 'text-muted';
+}
+
+document.getElementById('searchForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const query = document.getElementById('query').value.trim();
+    const topK = parseInt(document.getElementById('top_k').value);
+    const ragEnabled = document.getElementById('rag_enabled').checked;
+    
+    if (!query) {
+        alert('Please enter a search query');
+        return;
+    }
+    
+    // Show loading indicator
+    document.getElementById('loadingIndicator').style.display = 'block';
+    document.getElementById('searchResults').style.display = 'none';
+    document.getElementById('exampleQueries').style.display = 'none';
+    
+    // Perform search
+    fetch('/api/search', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            query: query,
+            top_k: topK,
+            rag_enabled: ragEnabled
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loadingIndicator').style.display = 'none';
+        
+        if (data.error) {
+            alert('Search failed: ' + data.error);
+            return;
+        }
+        
+        displayResults(data);
+    })
+    .catch(error => {
+        document.getElementById('loadingIndicator').style.display = 'none';
+        alert('Search failed: ' + error.message);
+    });
+});
+
+function displayResults(data) {
+    const results = data.results || [];
+    const count = data.count || 0;
+    const ragAnalysis = data.rag_analysis;
+    
+    // Update results title
+    document.getElementById('resultsTitle').textContent = `📋 Search Results (${count} found)`;
+    
+    // Show results summary
+    if (count > 0) {
+        const avgSimilarity = results.reduce((sum, r) => sum + (r.similarity_score || 0), 0) / results.length;
+        const uniqueServices = new Set(results.map(r => r.service || 'unknown')).size;
+        
+        document.getElementById('resultsSummary').innerHTML = `
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="h4 text-primary">${count.toLocaleString()}</div>
+                        <div class="text-muted">Results Found</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="h4 text-info">${formatSimilarity(avgSimilarity)}</div>
+                        <div class="text-muted">Avg Similarity</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card text-center">
+                    <div class="card-body">
+                        <div class="h4 text-success">${uniqueServices}</div>
+                        <div class="text-muted">Services</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Create results table
+        let tableHTML = `
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">📊 Results Table</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Severity</th>
+                                    <th>Service</th>
+                                    <th>Message</th>
+                                    <th>Timestamp</th>
+                                    <th>Similarity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
+        
+        results.forEach((result, i) => {
+            const message = result.message || '';
+            const displayMessage = message.length > 100 ? message.substring(0, 100) + '...' : message;
+            
+            tableHTML += `
+                <tr>
+                    <td>${i + 1}</td>
+                    <td><span class="${getSeverityClass(result.severity)}">${getSeverityIcon(result.severity)} ${result.severity}</span></td>
+                    <td>${result.service || 'unknown'}</td>
+                    <td>${displayMessage}</td>
+                    <td>${result.timestamp || 'unknown'}</td>
+                    <td>${formatSimilarity(result.similarity_score || 0)}</td>
+                </tr>
+            `;
+        });
+        
+        tableHTML += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('resultsTable').innerHTML = tableHTML;
+        
+        // Show RAG analysis if available
+        if (ragAnalysis) {
+            document.getElementById('ragAnalysis').innerHTML = `
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h4>🧠 AI Analysis</h4>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="analysis-section root-cause">
+                            <h5>🔍 Root Cause</h5>
+                            <p>${ragAnalysis.root_cause || 'No analysis available'}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="analysis-section fix-suggestions">
+                            <h5>🛠️ Fix Suggestions</h5>
+                            <p>${ragAnalysis.fix_suggestions || 'No suggestions available'}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="analysis-section prevention">
+                            <h5>🛡️ Prevention</h5>
+                            <p>${ragAnalysis.prevention || 'No prevention tips available'}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-center mb-4">
+                    <a href="/root_cause?query=${encodeURIComponent(data.query)}" class="btn btn-info btn-lg">
+                        <i class="bi bi-brain"></i> View Detailed Analysis
+                    </a>
+                </div>
+            `;
+            document.getElementById('ragAnalysis').style.display = 'block';
+        }
+    } else {
+        document.getElementById('resultsSummary').innerHTML = `
+            <div class="col-12">
+                <div class="alert alert-info">
+                    🔍 No results found for your query. Try different keywords or check if logs have been ingested.
+                </div>
+            </div>
+        `;
+        document.getElementById('resultsTable').innerHTML = '';
+        document.getElementById('ragAnalysis').style.display = 'none';
+    }
+    
+    document.getElementById('searchResults').style.display = 'block';
+}
+</script>
+{% endblock %}

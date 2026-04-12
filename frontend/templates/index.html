@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - ErrorLens{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">📊 Dashboard</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+        </button>
+    </div>
+</div>
+
+<!-- System Health Overview -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>🏥 System Health</h4>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="metric-value {% if health.status == 'healthy' %}text-success{% elif health.status == 'unhealthy' %}text-danger{% else %}text-warning{% endif %}">
+                    {% if health.status == 'healthy' %}🟢{% elif health.status == 'unhealthy' %}🔴{% else %}🟡{% endif %}
+                </div>
+                <div class="metric-label">Overall Status</div>
+                <div class="small">{{ health.status|title if health.status else 'Unknown' }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="metric-value {% if health.endee_connected %}text-success{% else %}text-danger{% endif %}">
+                    {% if health.endee_connected %}🟢{% else %}🔴{% endif %}
+                </div>
+                <div class="metric-label">Vector Database</div>
+                <div class="small">{% if health.endee_connected %}Connected{% else %}Disconnected{% endif %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="metric-value {% if health.model_loaded %}text-success{% else %}text-danger{% endif %}">
+                    {% if health.model_loaded %}🟢{% else %}🔴{% endif %}
+                </div>
+                <div class="metric-label">AI Model</div>
+                <div class="small">{% if health.model_loaded %}Loaded{% else %}Not Loaded{% endif %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="metric-value {% if health.status == 'healthy' %}text-success{% else %}text-warning{% endif %}">
+                    {% if health.status == 'healthy' %}🟢{% else %}🔴{% endif %}
+                </div>
+                <div class="metric-label">Service Status</div>
+                <div class="small">{% if health.status == 'healthy' %}Online{% else %}Issues{% endif %}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Collection Statistics -->
+{% if stats %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>📈 Collection Statistics</h4>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="metric-value text-primary">{{ "{:,}".format(stats.vector_count) if stats.vector_count else "0" }}</div>
+                <div class="metric-label">Total Log Entries</div>
+                <div class="small">Stored in vector database</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="metric-value text-info">{{ stats.collection if stats.collection else "error_logs" }}</div>
+                <div class="metric-label">Collection</div>
+                <div class="small">Active vector collection</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="metric-value text-secondary">{{ stats.dimension if stats.dimension else "384" }}D</div>
+                <div class="metric-label">Vector Dimension</div>
+                <div class="small">Embedding dimensionality</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-metric">
+            <div class="card-body">
+                <div class="metric-value text-success">{{ stats.metric|title if stats.metric else "Cosine" }}</div>
+                <div class="metric-label">Similarity Metric</div>
+                <div class="small">Distance calculation</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Storage Information -->
+{% if stats.vector_count and stats.vector_count > 0 %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>💾 Storage Information</h4>
+    </div>
+    <div class="col-md-6">
+        <div class="card card-metric">
+            <div class="card-body">
+                {% set estimated_size_mb = (stats.vector_count * (stats.dimension or 384) * 4) / (1024 * 1024) %}
+                <div class="metric-value text-warning">{{ "%.1f"|format(estimated_size_mb) }} MB</div>
+                <div class="metric-label">Estimated Vector Storage</div>
+                <div class="small">Approximate storage size</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card card-metric">
+            <div class="card-body">
+                {% set vectors_per_mb = (stats.vector_count / estimated_size_mb) if estimated_size_mb > 0 else 0 %}
+                <div class="metric-value text-info">{{ "%.0f"|format(vectors_per_mb) }} vectors/MB</div>
+                <div class="metric-label">Storage Density</div>
+                <div class="small">Storage efficiency metric</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% else %}
+<div class="alert alert-info">
+    📊 No statistics available. Make sure the backend API is running and accessible.
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>⚡ Quick Actions</h4>
+    </div>
+    <div class="col-md-4">
+        <div class="d-grid">
+            <a href="{{ url_for('ingest') }}" class="btn btn-primary btn-lg">
+                <i class="bi bi-upload"></i> Upload Logs
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="d-grid">
+            <a href="{{ url_for('search') }}" class="btn btn-success btn-lg">
+                <i class="bi bi-search"></i> Search Logs
+            </a>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="d-grid">
+            <a href="{{ url_for('root_cause') }}" class="btn btn-info btn-lg">
+                <i class="bi bi-brain"></i> AI Analysis
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- System Information -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h4>ℹ️ System Information</h4>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Configuration</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Backend API:</strong> <code>{{ api_url }}</code></li>
+                    <li><strong>Supported Formats:</strong> .log, .txt, .json</li>
+                    <li><strong>Max File Size:</strong> 50 MB</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title">Processing Details</h6>
+                <ul class="list-unstyled">
+                    <li><strong>Embedding Model:</strong> all-MiniLM-L6-v2</li>
+                    <li><strong>Batch Processing:</strong> 100 logs/batch</li>
+                    <li><strong>Search Threshold:</strong> 0.3 similarity</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Welcome Information -->
+{% if not stats or not stats.vector_count or stats.vector_count == 0 %}
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="card-title">🚀 Getting Started</h5>
+                <p class="card-text">
+                    Welcome to ErrorLens! To get started with intelligent log analysis:
+                </p>
+                <ol>
+                    <li><strong>Upload logs:</strong> Go to the <a href="{{ url_for('ingest') }}">Ingest</a> page to upload your log files</li>
+                    <li><strong>Search logs:</strong> Use the <a href="{{ url_for('search') }}">Search</a> page to find relevant errors</li>
+                    <li><strong>Get insights:</strong> Use <a href="{{ url_for('root_cause') }}">Root Cause Analysis</a> for AI-powered suggestions</li>
+                </ol>
+                <p class="card-text">
+                    <small class="text-muted">
+                        ErrorLens uses advanced semantic search and AI analysis to help you quickly identify and resolve issues in your logs.
+                    </small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-refresh every 30 seconds
+setTimeout(function() {
+    location.reload();
+}, 30000);
+</script>
+{% endblock %}
