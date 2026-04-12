@@ -2,15 +2,14 @@
 ErrorLens Endee Client
 
 This module provides a client interface for interacting with the Endee vector database.
-Handles collection management, vector operations, and search functionality.
+Handles index management, vector operations, and search functionality.
 """
 
 import logging
 import os
-import requests
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from datetime import datetime
-import json
+from endee import Endee
 
 logger = logging.getLogger(__name__)
 
@@ -19,8 +18,8 @@ class EndeeClient:
     """
     Client for interacting with Endee vector database.
     
-    Provides methods for collection management, vector upsert, and similarity search.
-    Endee is a REST API-based vector database running on http://localhost:8080.
+    Provides methods for index management, vector upsert, and similarity search.
+    Endee is a high-performance vector database running on http://localhost:8080.
     """
     
     def __init__(self, base_url: Optional[str] = None, timeout: int = 30):
@@ -29,90 +28,30 @@ class EndeeClient:
         
         Args:
             base_url (str, optional): Base URL for Endee API. 
-                                    Defaults to ENDEE_URL environment variable or http://localhost:8080
+                                    Defaults to ENDEE_URL environment variable or http://localhost:8080/api/v1
             timeout (int): Request timeout in seconds. Default is 30.
         """
-        self.base_url = base_url or os.getenv("ENDEE_URL", "http://localhost:8080")
+        self.base_url = base_url or os.getenv("ENDEE_URL", "http://localhost:8080/api/v1")
         self.timeout = timeout
         
-        # Remove trailing slash if present
-        self.base_url = self.base_url.rstrip('/')
+        # Initialize Endee SDK client
+        self.client = Endee()
+        self.client.set_base_url(self.base_url)
         
-        # Default collection name for ErrorLens
-        self.default_collection = "error_logs"
+        # Default index name for ErrorLens
+        self.default_index = "error_logs"
         
         logger.info(f"EndeeClient initialized with base_url: {self.base_url}")
-        logger.info(f"Default collection: {self.default_collection}")
+        logger.info(f"Default index: {self.default_index}")
         logger.info(f"Request timeout: {timeout}s")
-    
-    def _make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, 
-                     params: Optional[Dict] = None) -> Dict[str, Any]:
-        """
-        Make HTTP request to Endee API.
-        
-        Args:
-            method (str): HTTP method (GET, POST, DELETE)
-            endpoint (str): API endpoint (without base URL)
-            data (dict, optional): JSON data for POST requests
-            params (dict, optional): Query parameters
-            
-        Returns:
-            dict: Response JSON data
-            
-        Raises:
-            ConnectionError: If Endee is unreachable
-            requests.HTTPError: If HTTP error occurs
-            ValueError: If response is not valid JSON
-        """
-        url = f"{self.base_url}{endpoint}"
-        
-        try:
-            logger.debug(f"Making {method} request to {url}")
-            if data:
-                logger.debug(f"Request data: {json.dumps(data, indent=2)}")
-            
-            response = requests.request(
-                method=method,
-                url=url,
-                json=data,
-                params=params,
-                timeout=self.timeout,
-                headers={"Content-Type": "application/json"}
-            )
-            
-            logger.debug(f"Response status: {response.status_code}")
-            
-            # Raise exception for HTTP errors
-            response.raise_for_status()
-            
-            # Parse JSON response
-            try:
-                result = response.json()
-                logger.debug(f"Response data: {json.dumps(result, indent=2)}")
-                return result
-            except json.JSONDecodeError as e:
-                logger.error(f"Invalid JSON response: {response.text}")
-                raise ValueError(f"Invalid JSON response from Endee: {e}")
-                
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"Failed to connect to Endee at {self.base_url}: {e}")
-            raise ConnectionError(f"Cannot connect to Endee at {self.base_url}. Is Endee running?")
-        
-        except requests.exceptions.Timeout as e:
-            logger.error(f"Request timeout after {self.timeout}s: {e}")
-            raise ConnectionError(f"Request to Endee timed out after {self.timeout}s")
-        
-        except requests.exceptions.HTTPError as e:
-            logger.error(f"HTTP error {response.status_code}: {response.text}")
-            raise requests.HTTPError(f"Endee API error {response.status_code}: {response.text}")
     
     def create_collection(self, name: Optional[str] = None, dimension: int = 384, 
                          metric: str = "cosine") -> Dict[str, Any]:
         """
-        Create a new collection in Endee.
+        Create a new index in Endee.
         
         Args:
-            name (str, optional): Collection name. Defaults to default_collection.
+            name (str, optional): Index name. Defaults to default_index.
             dimension (int): Vector dimension. Default is 384 for all-MiniLM-L6-v2.
             metric (str): Distance metric. Default is "cosine".
             
@@ -120,97 +59,108 @@ class EndeeClient:
             dict: Creation response from Endee
             
         Raises:
-            ConnectionError: If Endee is unreachable
-            requests.HTTPError: If collection creation fails
+            Exception: If index creation fails
         """
-        collection_name = name or self.default_collection
+        index_name = name or self.default_index
         
-        data = {
-            "name": collection_name,
-            "dimension": dimension,
-            "metric": metric
-        }
-        
-        logger.info(f"Creating collection '{collection_name}' with dimension {dimension} and metric '{metric}'")
+        logger.info(f"Creating index '{index_name}' with dimension {dimension} and metric '{metric}'")
         
         try:
-            result = self._make_request("POST", "/collections", data=data)
-            logger.info(f"Collection '{collection_name}' created successfully")
-            return result
+            # Check if index already exists
+            if self.collection_exists(index_name):
+                logger.warning(f"Index '{index_name}' already exists")
+                return {"status": "exists", "name": index_name}
             
-        except requests.HTTPError as e:
-            if "already exists" in str(e).lower():
-                logger.warning(f"Collection '{collection_name}' already exists")
-                return {"status": "exists", "name": collection_name}
-            else:
-                logger.error(f"Failed to create collection '{collection_name}': {e}")
-                raise
+            # Create index using Endee SDK
+            self.client.create_index(
+                name=index_name,
+                dimension=dimension,
+                space_type=metric
+            )
+            
+            logger.info(f"Index '{index_name}' created successfully")
+            return {"status": "created", "name": index_name}
+            
+        except Exception as e:
+            logger.error(f"Failed to create index '{index_name}': {e}")
+            # If error mentions "already exists", treat as success
+            if "already exists" in str(e).lower() or "exist" in str(e).lower():
+                logger.warning(f"Index '{index_name}' already exists")
+                return {"status": "exists", "name": index_name}
+            raise
     
     def collection_exists(self, name: Optional[str] = None) -> bool:
         """
-        Check if a collection exists.
+        Check if an index exists.
         
         Args:
-            name (str, optional): Collection name. Defaults to default_collection.
+            name (str, optional): Index name. Defaults to default_index.
             
         Returns:
-            bool: True if collection exists, False otherwise
+            bool: True if index exists, False otherwise
         """
-        collection_name = name or self.default_collection
+        index_name = name or self.default_index
         
         try:
-            # Try to get collection info
-            self._make_request("GET", f"/collections/{collection_name}")
-            logger.debug(f"Collection '{collection_name}' exists")
-            return True
-            
-        except requests.HTTPError as e:
-            if "404" in str(e):
-                logger.debug(f"Collection '{collection_name}' does not exist")
-                return False
+            # Try to get index info
+            indexes = self.client.list_indexes()
+            # indexes might be a list of strings or dicts
+            if indexes and len(indexes) > 0:
+                if isinstance(indexes[0], str):
+                    exists = index_name in indexes
+                else:
+                    exists = index_name in [idx.get("name") if isinstance(idx, dict) else idx for idx in indexes]
             else:
-                logger.error(f"Error checking collection existence: {e}")
-                raise
+                exists = False
+            
+            logger.debug(f"Index '{index_name}' exists: {exists}")
+            return exists
+            
+        except Exception as e:
+            logger.error(f"Error checking index existence: {e}")
+            return False
     
     def delete_collection(self, name: Optional[str] = None) -> Dict[str, Any]:
         """
-        Delete a collection from Endee.
+        Delete an index from Endee.
         
         Args:
-            name (str, optional): Collection name. Defaults to default_collection.
+            name (str, optional): Index name. Defaults to default_index.
             
         Returns:
             dict: Deletion response from Endee
             
         Raises:
-            ConnectionError: If Endee is unreachable
-            requests.HTTPError: If collection deletion fails
+            Exception: If index deletion fails
         """
-        collection_name = name or self.default_collection
+        index_name = name or self.default_index
         
-        logger.info(f"Deleting collection '{collection_name}'")
+        logger.info(f"Deleting index '{index_name}'")
         
         try:
-            result = self._make_request("DELETE", f"/collections/{collection_name}")
-            logger.info(f"Collection '{collection_name}' deleted successfully")
-            return result
+            if not self.collection_exists(index_name):
+                logger.warning(f"Index '{index_name}' does not exist")
+                return {"status": "not_found", "name": index_name}
             
-        except requests.HTTPError as e:
-            if "404" in str(e):
-                logger.warning(f"Collection '{collection_name}' does not exist")
-                return {"status": "not_found", "name": collection_name}
-            else:
-                logger.error(f"Failed to delete collection '{collection_name}': {e}")
-                raise
+            self.client.delete_index(index_name)
+            logger.info(f"Index '{index_name}' deleted successfully")
+            return {"status": "deleted", "name": index_name}
+            
+        except Exception as e:
+            logger.error(f"Failed to delete index '{index_name}': {e}")
+            if "not found" in str(e).lower():
+                logger.warning(f"Index '{index_name}' does not exist")
+                return {"status": "not_found", "name": index_name}
+            raise
     
     def upsert_vectors(self, vectors: List[Dict[str, Any]], 
                       collection: Optional[str] = None) -> Dict[str, Any]:
         """
-        Upsert vectors into a collection.
+        Upsert vectors into an index.
         
         Args:
             vectors (List[Dict]): List of vector objects with id, vector, and metadata
-            collection (str, optional): Collection name. Defaults to default_collection.
+            collection (str, optional): Index name. Defaults to default_index.
             
         Vector format:
             {
@@ -230,10 +180,9 @@ class EndeeClient:
             
         Raises:
             ValueError: If vectors format is invalid
-            ConnectionError: If Endee is unreachable
-            requests.HTTPError: If upsert fails
+            Exception: If upsert fails
         """
-        collection_name = collection or self.default_collection
+        index_name = collection or self.default_index
         
         if not vectors:
             raise ValueError("Vectors list cannot be empty")
@@ -254,17 +203,26 @@ class EndeeClient:
             if len(vector["vector"]) != 384:
                 raise ValueError(f"Vector at index {i} must have 384 dimensions, got {len(vector['vector'])}")
         
-        data = {
-            "collection": collection_name,
-            "vectors": vectors
-        }
-        
-        logger.info(f"Upserting {len(vectors)} vectors to collection '{collection_name}'")
+        logger.info(f"Upserting {len(vectors)} vectors to index '{index_name}'")
         
         try:
-            result = self._make_request("POST", "/vectors/upsert", data=data)
+            # Get index object
+            index = self.client.get_index(name=index_name)
+            
+            # Convert to Endee format (meta instead of metadata)
+            endee_vectors = []
+            for v in vectors:
+                endee_vectors.append({
+                    "id": v["id"],
+                    "vector": v["vector"],
+                    "meta": v["metadata"]
+                })
+            
+            # Upsert vectors
+            index.upsert(endee_vectors)
+            
             logger.info(f"Successfully upserted {len(vectors)} vectors")
-            return result
+            return {"status": "success", "count": len(vectors)}
             
         except Exception as e:
             logger.error(f"Failed to upsert vectors: {e}")
@@ -273,12 +231,12 @@ class EndeeClient:
     def search(self, query_vector: List[float], top_k: int = 10, 
               collection: Optional[str] = None, similarity_threshold: float = 0.3) -> Dict[str, Any]:
         """
-        Search for similar vectors in a collection.
+        Search for similar vectors in an index.
         
         Args:
             query_vector (List[float]): Query vector (384-dimensional)
             top_k (int): Number of results to return. Default is 10.
-            collection (str, optional): Collection name. Defaults to default_collection.
+            collection (str, optional): Index name. Defaults to default_index.
             similarity_threshold (float): Minimum similarity score. Default is 0.3.
             
         Returns:
@@ -303,10 +261,9 @@ class EndeeClient:
             
         Raises:
             ValueError: If query_vector format is invalid
-            ConnectionError: If Endee is unreachable
-            requests.HTTPError: If search fails
+            Exception: If search fails
         """
-        collection_name = collection or self.default_collection
+        index_name = collection or self.default_index
         
         # Validate query vector
         if not isinstance(query_vector, list):
@@ -321,31 +278,36 @@ class EndeeClient:
         if top_k < 1 or top_k > 1000:
             raise ValueError("top_k must be between 1 and 1000")
         
-        data = {
-            "collection": collection_name,
-            "vector": query_vector,
-            "top_k": top_k
-        }
-        
-        logger.info(f"Searching collection '{collection_name}' for top {top_k} similar vectors")
+        logger.info(f"Searching index '{index_name}' for top {top_k} similar vectors")
         
         try:
-            result = self._make_request("POST", "/vectors/search", data=data)
+            # Get index object
+            index = self.client.get_index(name=index_name)
             
-            # Filter results by similarity threshold
-            if "results" in result:
-                filtered_results = [
-                    r for r in result["results"] 
-                    if r.get("score", 0) >= similarity_threshold
-                ]
-                
-                logger.info(f"Found {len(result['results'])} results, {len(filtered_results)} above threshold {similarity_threshold}")
-                
-                result["results"] = filtered_results
-                result["filtered_count"] = len(filtered_results)
-                result["total_count"] = len(result.get("results", []))
+            # Search vectors
+            results = index.query(
+                vector=query_vector,
+                top_k=top_k,
+                include_vectors=False
+            )
             
-            return result
+            # Convert results to our format (meta -> metadata, similarity -> score)
+            formatted_results = []
+            for r in results:
+                if r.get("similarity", 0) >= similarity_threshold:
+                    formatted_results.append({
+                        "id": r["id"],
+                        "score": r["similarity"],
+                        "metadata": r.get("meta", {})
+                    })
+            
+            logger.info(f"Found {len(results)} results, {len(formatted_results)} above threshold {similarity_threshold}")
+            
+            return {
+                "results": formatted_results,
+                "filtered_count": len(formatted_results),
+                "total_count": len(results)
+            }
             
         except Exception as e:
             logger.error(f"Failed to search vectors: {e}")
@@ -353,13 +315,13 @@ class EndeeClient:
     
     def get_stats(self, collection: Optional[str] = None) -> Dict[str, Any]:
         """
-        Get collection statistics from Endee.
+        Get index statistics from Endee.
         
         Args:
-            collection (str, optional): Collection name. Defaults to default_collection.
+            collection (str, optional): Index name. Defaults to default_index.
             
         Returns:
-            dict: Collection statistics
+            dict: Index statistics
             
         Stats format:
             {
@@ -370,20 +332,32 @@ class EndeeClient:
             }
             
         Raises:
-            ConnectionError: If Endee is unreachable
-            requests.HTTPError: If stats retrieval fails
+            Exception: If stats retrieval fails
         """
-        collection_name = collection or self.default_collection
+        index_name = collection or self.default_index
         
-        logger.info(f"Getting statistics for collection '{collection_name}'")
+        logger.info(f"Getting statistics for index '{index_name}'")
         
         try:
-            result = self._make_request("GET", f"/collections/{collection_name}/stats")
-            logger.info(f"Retrieved stats for collection '{collection_name}': {result.get('vector_count', 0)} vectors")
-            return result
+            # Get index object
+            index = self.client.get_index(name=index_name)
+            
+            # Get index description
+            desc = index.describe()
+            
+            # Format stats
+            stats = {
+                "collection": index_name,
+                "vector_count": desc.get("count", 0),
+                "dimension": desc.get("dimension", 384),
+                "metric": desc.get("space_type", "cosine")
+            }
+            
+            logger.info(f"Retrieved stats for index '{index_name}': {stats.get('vector_count', 0)} vectors")
+            return stats
             
         except Exception as e:
-            logger.error(f"Failed to get collection stats: {e}")
+            logger.error(f"Failed to get index stats: {e}")
             raise
     
     def health_check(self) -> Dict[str, Any]:
@@ -401,14 +375,19 @@ class EndeeClient:
             }
             
         Raises:
-            ConnectionError: If Endee is unreachable
+            Exception: If Endee is unreachable
         """
         logger.info("Performing Endee health check")
         
         try:
-            result = self._make_request("GET", "/health")
-            logger.info(f"Endee health check successful: {result.get('status', 'unknown')}")
-            return result
+            # Try to list indexes as a health check
+            indexes = self.client.list_indexes()
+            
+            logger.info(f"Endee health check successful: {len(indexes)} indexes found")
+            return {
+                "status": "healthy",
+                "indexes": len(indexes)
+            }
             
         except Exception as e:
             logger.error(f"Endee health check failed: {e}")
@@ -476,5 +455,5 @@ class EndeeClient:
         return {
             "base_url": self.base_url,
             "timeout": self.timeout,
-            "default_collection": self.default_collection
+            "default_index": self.default_index
         }

@@ -17,6 +17,9 @@ python-dotenv==1.0.0
 # Note: sentence-transformers will install compatible torch version
 sentence-transformers>=2.3.0
 
+# Vector Database
+endee>=0.1.25
+
 # HTTP Client
 requests==2.31.0
 httpx==0.26.0
