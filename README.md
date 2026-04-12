@@ -11,7 +11,7 @@
 
 *Revolutionizing error detection with vector embeddings and intelligent root cause analysis*
 
-[📖 Documentation](#documentation) • [🎯 Features](#key-features) • [🏗️ Architecture](#system-architecture) • [🚀 Quick Start](#quick-start) • [💻 Repository](#repository)
+[📖 Documentation](errorlens/README_ERRORLENS.md) • [🎯 Features](#-key-features) • [🏗️ Architecture](#️-system-architecture) • [🚀 Quick Start](#-quick-start) • [💻 Repository](#-repository)
 
 ---
 
