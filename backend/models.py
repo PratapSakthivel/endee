@@ -50,6 +50,7 @@ class LogEntry:
         return {
             "severity": self.severity,
             "service": self.service,
+            "message": self.message,
             "timestamp": self.timestamp,
             "raw_log": self.raw_log,
             "line_number": self.line_number
