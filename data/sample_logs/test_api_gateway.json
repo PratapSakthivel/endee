@@ -1,0 +1,5 @@
+{"timestamp": "2024-01-15T10:32:00Z", "level": "ERROR", "service": "api_gateway", "message": "Rate limit exceeded for client 192.168.1.100"}
+{"timestamp": "2024-01-15T10:32:01Z", "level": "WARN", "service": "api_gateway", "message": "Slow response time detected"}
+{"timestamp": "2024-01-15T10:32:02Z", "level": "INFO", "service": "api_gateway", "message": "Health check passed"}
+{"timestamp": "2024-01-15T10:32:03Z", "level": "ERROR", "service": "api_gateway", "message": "Backend service unavailable"}
+{"timestamp": "2024-01-15T10:32:04Z", "level": "DEBUG", "service": "api_gateway", "message": "Request routing completed"}
