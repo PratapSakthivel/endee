@@ -1,0 +1,25 @@
+2024-01-15 11:00:15 INFO [user-service] User registration successful. User ID: usr_789. Email: newuser@example.com
+2024-01-15 11:01:22 ERROR [user-service] Database connection lost during user profile update. User ID: usr_456. Retrying...
+2024-01-15 11:02:48 CRITICAL [auth-service] OAuth2 provider unreachable. Provider: Google. Timeout: 10s. Affected users: 150
+2024-01-15 11:03:35 WARNING [notification-service] SMS delivery delayed. Provider: Twilio. Queue size: 500 messages
+2024-01-15 11:04:51 ERROR [order-service] Inventory check failed for product SKU-ABC-123. Service: inventory-service. HTTP 500
+2024-01-15 11:05:19 ERROR [payment-service] Stripe API rate limit hit. Requests: 100/sec. Limit: 100/sec. Backing off for 5s
+2024-01-15 11:06:44 CRITICAL [api-gateway] Circuit breaker opened for service: recommendation-service. Failure rate: 65%
+2024-01-15 11:07:28 ERROR [search-service] Redis cache miss rate high. Miss rate: 85%. Cache size: 10GB. Evictions: 1000/min
+2024-01-15 11:08:55 WARNING [analytics-service] Kafka consumer lag detected. Topic: user-events. Lag: 50,000 messages
+2024-01-15 11:09:31 ERROR [email-service] SMTP connection failed. Server: smtp.mail.com:587. Error: TLS handshake timeout
+2024-01-15 11:10:17 CRITICAL [database-cluster] Master-slave replication lag detected. Lag: 45 seconds. Slave: db-slave-02
+2024-01-15 11:11:42 ERROR [media-service] S3 upload failed. Bucket: user-uploads. File: image_12345.jpg. Error: Access Denied
+2024-01-15 11:12:28 WARNING [billing-service] Invoice generation delayed. Queue depth: 200. Processing rate: 10/min
+2024-01-15 11:13:55 ERROR [recommendation-service] ML model inference timeout. Model: product-recommender-v2. Timeout: 500ms
+2024-01-15 11:14:33 ERROR [cart-service] Session store unavailable. Service: Redis. Impact: Users cannot add to cart
+2024-01-15 11:15:49 CRITICAL [logging-service] Disk space critically low. Partition: /var/log. Available: 2GB. Threshold: 5GB
+2024-01-15 11:16:21 ERROR [shipping-service] FedEx API authentication failed. API key expired. Renewal required
+2024-01-15 11:17:46 WARNING [monitoring-service] Prometheus scrape timeout. Target: order-service:9090. Timeout: 10s
+2024-01-15 11:18:32 ERROR [webhook-service] Webhook delivery failed after 5 retries. Target: https://partner.com/webhook. Last error: 502
+2024-01-15 11:19:58 ERROR [scheduler-service] Cron job failed: daily-report-generator. Exit code: 1. Last run: 2024-01-14
+2024-01-15 11:20:44 CRITICAL [kubernetes] Pod CrashLoopBackOff detected. Pod: order-service-7d9f8b-abc12. Namespace: production
+2024-01-15 11:21:19 ERROR [export-service] Data export timeout. Format: CSV. Records: 1,000,000. Timeout: 300s
+2024-01-15 11:22:37 WARNING [cdn-service] CDN cache hit rate low. Hit rate: 45%. Expected: 80%. Origin requests increased
+2024-01-15 11:23:52 ERROR [integration-service] Third-party API unavailable. Service: shipping-partner-api. Uptime: 99.5%
+2024-01-15 11:24:28 ERROR [queue-service] RabbitMQ connection refused. Host: rabbitmq.internal. Port: 5672. Connection attempts: 3

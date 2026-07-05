@@ -28,21 +28,32 @@ def fetch_stats() -> Dict[str, Any]:
         response = requests.get(f"{api_url}/stats", timeout=10)
         if response.status_code == 200:
             return response.json()
+        elif response.status_code == 503:
+            # Service unavailable but still return empty stats
+            st.warning("⚠️ Vector database is initializing. Some statistics may be unavailable.")
+            return {}
         else:
             st.error(f"Failed to fetch stats: HTTP {response.status_code}")
             return {}
+    except requests.exceptions.Timeout:
+        st.error("⏱️ Request timed out. Backend is taking longer than expected to respond.")
+        return {}
+    except requests.exceptions.ConnectionError:
+        st.error("🔌 Cannot connect to backend API. Make sure it's running on the correct port.")
+        return {}
     except requests.exceptions.RequestException as e:
-        st.error(f"Cannot connect to backend API: {str(e)}")
+        st.error(f"❌ API Error: {str(e)}")
         return {}
 
 def fetch_health() -> Dict[str, Any]:
     """Fetch health status from the backend API."""
     try:
         response = requests.get(f"{api_url}/health", timeout=5)
-        if response.status_code in [200, 503]:  # 503 is expected for partial health
+        # Accept both 200 and 503 status codes (503 means partial health)
+        if response.status_code in [200, 503]:
             return response.json()
         else:
-            return {"status": "error", "endee_connected": False, "model_loaded": False}
+            return {"status": "unhealthy", "endee_connected": False, "model_loaded": False}
     except requests.exceptions.RequestException:
         return {"status": "error", "endee_connected": False, "model_loaded": False}
 

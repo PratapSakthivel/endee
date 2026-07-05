@@ -51,6 +51,13 @@ st.markdown("""
         border-radius: 8px;
         margin: 10px 0;
         border-left: 4px solid #0066cc;
+        color: #000000;
+    }
+    .guide-step h3 {
+        color: #0066cc;
+    }
+    .guide-step p, .guide-step ul, .guide-step li {
+        color: #333333;
     }
     .metric-green {
         color: #28a745;

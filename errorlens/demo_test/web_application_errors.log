@@ -1,0 +1,25 @@
+2024-01-15 12:00:05 ERROR [WebApp] Uncaught TypeError: Cannot read property 'length' of undefined. File: dashboard.js:145
+2024-01-15 12:01:23 WARNING [WebApp] Deprecated API usage detected. Function: $.ajax(). Migrate to fetch() API
+2024-01-15 12:02:48 ERROR [WebApp] CORS error blocked request. Origin: https://app.example.com. Target: https://api.other.com
+2024-01-15 12:03:15 CRITICAL [WebApp] Memory leak detected. Heap size: 1.8GB. Threshold: 1.5GB. Page: /analytics/dashboard
+2024-01-15 12:04:37 ERROR [WebApp] Failed to load resource: net::ERR_CONNECTION_REFUSED. URL: https://cdn.analytics.com/tracker.js
+2024-01-15 12:05:52 WARNING [WebApp] Slow page load detected. Load time: 8.5s. Target: 3s. Page: /products/catalog
+2024-01-15 12:06:29 ERROR [WebApp] React Error: Maximum update depth exceeded. Component: ProductList. Infinite loop detected
+2024-01-15 12:07:44 ERROR [WebApp] XHR POST request failed. Status: 422 Unprocessable Entity. Endpoint: /api/v1/users
+2024-01-15 12:08:19 WARNING [WebApp] Cookie exceeds maximum size. Cookie: user_preferences. Size: 4500 bytes. Max: 4096 bytes
+2024-01-15 12:09:51 ERROR [WebApp] WebSocket connection closed unexpectedly. Code: 1006. Reason: Abnormal closure
+2024-01-15 12:10:33 CRITICAL [WebApp] Service Worker registration failed. Error: SecurityError. HTTPS required
+2024-01-15 12:11:48 ERROR [WebApp] IndexedDB quota exceeded. Requested: 250MB. Available: 200MB. Database: offline-cache
+2024-01-15 12:12:26 WARNING [WebApp] Mixed content warning. Page served over HTTPS loading HTTP resource: http://img.cdn.com/logo.png
+2024-01-15 12:13:55 ERROR [WebApp] Google Maps API key invalid or expired. Map container ID: map-canvas. Status: REQUEST_DENIED
+2024-01-15 12:14:31 ERROR [WebApp] Form validation failed. Field: email. Value: invalid-email. Error: Invalid email format
+2024-01-15 12:15:47 CRITICAL [WebApp] CSP violation detected. Blocked inline script. Policy: script-src 'self'
+2024-01-15 12:16:22 ERROR [WebApp] Payment iframe failed to load. Source: https://secure.payment.com/checkout. Error: CORS blocked
+2024-01-15 12:17:58 WARNING [WebApp] LocalStorage quota exceeded. Used: 10MB. Limit: 10MB. Oldest entries will be cleared
+2024-01-15 12:18:34 ERROR [WebApp] Failed to fetch user session. Status: 401 Unauthorized. Redirecting to login
+2024-01-15 12:19:49 ERROR [WebApp] Image upload failed. File: profile_pic.jpg. Size: 8MB. Error: File too large
+2024-01-15 12:20:27 WARNING [WebApp] Browser not supported. User Agent: MSIE 10.0. Required: Modern evergreen browser
+2024-01-15 12:21:52 ERROR [WebApp] Redux state mutation detected. Action: UPDATE_USER_PROFILE. Use immutable updates
+2024-01-15 12:22:38 ERROR [WebApp] Failed to parse JSON response. Endpoint: /api/orders. Response: <!DOCTYPE html> (HTML received)
+2024-01-15 12:23:44 CRITICAL [WebApp] Critical chunk loading failed. Chunk: vendors~main. URL: /static/js/vendors~main.chunk.js
+2024-01-15 12:24:19 ERROR [WebApp] Geolocation permission denied by user. Feature: store locator. Fallback: manual ZIP entry
