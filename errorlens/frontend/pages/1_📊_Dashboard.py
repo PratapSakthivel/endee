@@ -215,8 +215,8 @@ with info_col2:
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: #666; font-size: 0.8em;'>
-    ErrorLens Dashboard - Real-time system monitoring and statistics
+    <div style='text-align: center; color: #333333; font-size: 0.9em; padding: 10px;'>
+    <strong>ErrorLens Dashboard</strong> - Real-time system monitoring and statistics
     </div>
     """,
     unsafe_allow_html=True

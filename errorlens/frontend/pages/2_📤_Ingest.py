@@ -277,8 +277,8 @@ with st.sidebar:
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: #666; font-size: 0.8em;'>
-    ErrorLens Ingestion - Upload and process log files for intelligent analysis
+    <div style='text-align: center; color: #333333; font-size: 0.9em; padding: 10px;'>
+    <strong>ErrorLens Ingestion</strong> - Upload and process log files for intelligent analysis
     </div>
     """,
     unsafe_allow_html=True

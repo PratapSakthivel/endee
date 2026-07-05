@@ -388,8 +388,8 @@ with st.sidebar:
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: #666; font-size: 0.8em;'>
-    ErrorLens Root Cause Analysis - AI-powered intelligent error resolution
+    <div style='text-align: center; color: #333333; font-size: 0.9em; padding: 10px;'>
+    <strong>ErrorLens Root Cause Analysis</strong> - AI-powered intelligent error resolution
     </div>
     """,
     unsafe_allow_html=True

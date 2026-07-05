@@ -380,8 +380,8 @@ with st.sidebar:
 st.markdown("---")
 st.markdown(
     """
-    <div style='text-align: center; color: #666; font-size: 0.8em;'>
-    ErrorLens Search - Intelligent semantic search for error logs
+    <div style='text-align: center; color: #333333; font-size: 0.9em; padding: 10px;'>
+    <strong>ErrorLens Search</strong> - Intelligent semantic search for error logs
     </div>
     """,
     unsafe_allow_html=True
