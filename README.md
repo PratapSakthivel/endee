@@ -1,4 +1,4 @@
-# 🚀 Endee Internship 2026 - Submission Repository
+# ErrorLens: AI-Powered Semantic Log Analysis System
 
 <div align="center">
 
